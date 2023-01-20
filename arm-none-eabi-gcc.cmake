@@ -1,0 +1,61 @@
+#COMPILER_VERSION_REQUIRED can be use to specifie a precise version.
+set(TOOLCHAIN_PREFIX arm-none-eabi-)
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR ARM)
+
+#clear all the CFLags
+set (CMAKE_C_FLAGS "" CACHE STRING "Set C Compiler Flags" FORCE)
+set (CMAKE_C_FLAGS_RELEASE "-DRELEASE " CACHE STRING "Set C Compiler Flags" FORCE)
+set (CMAKE_C_FLAGS_DEBUG "-DDEBUG -fno-tree-coalesce-vars -fno-web " CACHE STRING "Set C Compiler Flags" FORCE)
+
+#clear all the CXXFLags
+set (CMAKE_CXX_FLAGS "" CACHE STRING "Set C++ Compiler Flags" FORCE)
+set (CMAKE_CXX_FLAGS_RELEASE "-DRELEASE " CACHE STRING "Set C++ Compiler Flags" FORCE)
+set (CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -fno-tree-coalesce-vars -fno-web " CACHE STRING "Set C++ Compiler Flags" FORCE)
+
+#add global compile flags for C and C++
+add_compile_options("-Wall" "-Wextra" "-ffunction-sections" "-fdata-sections" "-fno-common" "-fno-omit-frame-pointer" "-fsingle-precision-constant" "-Wdouble-promotion")
+
+include(${CMAKE_CURRENT_LIST_DIR}/gccDownloaderHelper.cmake)
+
+execute_process(
+		COMMAND ${UTIL_SEARCH_CMD} ${TOOLCHAIN_PREFIX}gcc
+		OUTPUT_VARIABLE BINUTILS_PATH
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+get_filename_component(EXE_EXT ${BINUTILS_PATH} EXT)
+message(STATUS "my ext is: ${EXE_EXT}")
+
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
+#message(STATUS "BINUTILS_PATH full path = ${BINUTILS_PATH} ")
+
+get_filename_component(ARM_TOOLCHAIN_DIR ${BINUTILS_PATH} DIRECTORY)
+
+#message(STATUS "ARM_TOOLCHAIN_DIR full path = ${ARM_TOOLCHAIN_DIR} ")
+
+string(REPLACE "\n" ";" COMPILER_LIST ${ARM_TOOLCHAIN_DIR})
+#message(STATUS "COMPILER_LIST full path = ${COMPILER_LIST} ")
+
+list(LENGTH COMPILER_LIST NUMBER_OF_PATH)
+if(${NUMBER_OF_PATH} GREATER 1)
+	list(GET COMPILER_LIST 0 FIRST_ARM_TOOLCHAIN_DIR)
+	get_filename_component(FIRST_ARM_TOOLCHAIN_DIR ${FIRST_ARM_TOOLCHAIN_DIR} DIRECTORY)
+else()
+	set(FIRST_ARM_TOOLCHAIN_DIR ${COMPILER_LIST})
+endif()
+
+set(CMAKE_C_COMPILER ${FIRST_ARM_TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}gcc${EXE_EXT})
+set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER} CACHE PATH "" FORCE)
+set(CMAKE_CXX_COMPILER ${FIRST_ARM_TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}g++${EXE_EXT})
+set(CMAKE_OBJCOPY ${FIRST_ARM_TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}objcopy${EXE_EXT} CACHE INTERNAL "objcopy tool")
+set(CMAKE_SIZE_UTIL ${FIRST_ARM_TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}size${EXE_EXT} CACHE INTERNAL "size tool")
+set(CMAKE_NM_UTIL ${FIRST_ARM_TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}nm${EXE_EXT} CACHE INTERNAL "nm tool")
+
+#message(STATUS "OBJ-COPY full path = ${CMAKE_OBJCOPY} ")
+
+set(CMAKE_FIND_ROOT_PATH ${BINUTILS_PATH})
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
